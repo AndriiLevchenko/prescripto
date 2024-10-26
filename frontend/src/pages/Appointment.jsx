@@ -1,14 +1,17 @@
 import React, {useContext, useEffect, useState} from 'react'
-import {useParams} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import {AppContext} from "../context/AppContext.jsx";
 import {assets} from "../assets/assets.js";
 import RelatedDoctors from "../components/RelatedDoctors.jsx";
+import {toast} from "react-toastify";
+import axios from "axios";
 
 const Appointment = () => {
     const {docId} = useParams();
-    const {doctors, currencySymbol} = useContext(AppContext);
+    const {doctors, currencySymbol, backendUrl, token, getDoctorsData} = useContext(AppContext);
+    const navigate = useNavigate();
     const daysOfWeek = ['SUN', 'MON', 'TUE', 'WEN', 'THU', 'FRI', 'SAT'];
-    const [docInfo, setDocInfo] = useState(null);
+    const [docInfo, setDocInfo] = useState({});
     const [docSlots, setDocSlots] = useState([]);
     const [slotIndex, setSlotIndex] = useState(0);
     const [slotTime, setSlotTime] = useState('');
@@ -16,9 +19,11 @@ const Appointment = () => {
     const fetchDocInfo = async () => {
         const docInfo = doctors.find(doc => doc._id === docId);
         setDocInfo(docInfo);
-        console.log("docInfo = ", docInfo);
+        //console.log("doctors in fetchDocInfo= ", doctors);
+        //console.log("docId = ", docId, "doc._id = поки немає");
+        //console.log("docInfo in fetchDocInfo= ", docInfo);
     }
-    const getAvailableSlots = async=>{
+    const getAvailableSlots = async ()=>{
         setDocSlots([]);
         let today = new Date();
         for (let i = 0; i < 7; i++) {
@@ -40,15 +45,53 @@ const Appointment = () => {
             let timeSlots = [];
             while (currentDate < endTime) {
                 let formattedTime = currentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-                // add slot to Array
-                timeSlots.push({
-                    datetime: new Date(currentDate),
-                    time: formattedTime
-                });
+                let day = currentDate.getDate();
+                let month = currentDate.getMonth() + 1;
+                let year = currentDate.getFullYear();
+
+                const slotDate = day + '_' + month + '_' + year;
+                const slotTime = formattedTime;
+
+                const isSlotAvailable = docInfo.slots_booked[slotDate] && docInfo.slots_booked[slotDate].includes(slotTime) ? false : true;
+                // console.log("docInfo.slots_booked[slotDate] in Appointmrnts  1 = ", docInfo.slots_booked[slotDate]);
+                // console.log("docInfo in Appointmrnts  1 = ", docInfo);
+                if(isSlotAvailable) {
+                    // add slot to Array
+                    timeSlots.push({
+                        datetime: new Date(currentDate),
+                        time: formattedTime
+                    });
+                }
+
                 //increment current time by 30 minutes
                 currentDate.setMinutes(currentDate.getMinutes() + 30);
             }
             setDocSlots(prev => ([...prev, timeSlots]));
+        }
+    }
+
+    const bookAppointment = async ()=> {
+        if(!token) {
+            toast.warn('Login to book appointment');
+            return navigate('/login');
+        }
+        try {
+            const date = docSlots[slotIndex][0].datetime;
+            let day = date.getDate();
+            let month = date.getMonth() + 1;
+            let year = date.getFullYear();
+
+            const slotDate = day + '_' + month + '_' + year;
+            const {data} = await axios.post(backendUrl + '/api/user/book-appointment', {docId, slotDate, slotTime}, {headers: {token}});
+            if(data.success) {
+                toast.success(data.message);
+                getDoctorsData();
+                navigate('/my-appointments');
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
         }
     }
 
@@ -100,7 +143,7 @@ const Appointment = () => {
                         </p>
                     ))}
                 </div>
-                <button className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book and appointment</button>
+                <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book and appointment</button>
             </div>
             {/*Listing Related Doctors*/}
             <RelatedDoctors docId = {docId} speciality = {docInfo.speciality} />

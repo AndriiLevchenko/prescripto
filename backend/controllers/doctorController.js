@@ -71,11 +71,11 @@ const appointmentComplete = async (req, res)=> {
     try {
         const {docId, appointmentId} = req.body;
         console.log('docId, appointmentId 4 = ', docId, appointmentId);
-        const newId =  new mongoose.Types.ObjectId(appointmentId);
-        const appointmentData = await appointmentModel.findById( newId);
+        const newObjectId =  new mongoose.Types.ObjectId(appointmentId);
+        const appointmentData = await appointmentModel.findById( newObjectId);
         console.log('appointmentData 5 = ', appointmentData);
         if(appointmentData && appointmentData.docId === docId ) {
-            await appointmentModel.findByIdAndUpdate(newId, {isCompleted: true});
+            await appointmentModel.findByIdAndUpdate(newObjectId, {isCompleted: true});
             return res.json({success: true, message: 'Appointment completed'});
         } else {
             return res.json({success: false, message: 'Mark failed'});
@@ -91,11 +91,11 @@ const appointmentCancel = async (req, res)=> {
     console.log('appointmentCancel start  req 6 =  = ', req);
     try {
         const {docId, appointmentId} = req.body;
-        const newId =  new mongoose.Types.ObjectId(appointmentId);
-        const appointmentData = await appointmentModel.findById( newId);
+        const newObjectId =  new mongoose.Types.ObjectId(appointmentId);
+        const appointmentData = await appointmentModel.findById( newObjectId);
         console.log('appointmentId 7 = ', appointmentId);
         if(appointmentData && appointmentData.docId === docId ) {
-            await appointmentModel.findByIdAndUpdate( newId, {cancelled: true});
+            await appointmentModel.findByIdAndUpdate( newObjectId, {cancelled: true});
             return res.json({success: true, message: 'Appointment cancelled'});
         } else {
             return res.json({success: false, message: 'Cancellation failed'});

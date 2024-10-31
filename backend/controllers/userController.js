@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import {v2 as cloudinary} from 'cloudinary';
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import mongoose from "mongoose";
 
 
 //API to register User
@@ -134,6 +135,7 @@ const bookAppointment = async (req, res)=>{
              date: Date.now()
          }
          const newAppointment = new appointmentModel(appointmentData);
+        console.log("newAppointment  6 = ", newAppointment);
          await newAppointment.save();
 
          //Save new slots data in docData
@@ -163,12 +165,13 @@ const listAppointment = async (req, res)=>{
 const cancelAppointment = async (req, res)=> {
     try {
         const {userId, appointmentId} = req.body;
-        const appointmentData = await appointmentModel.findById(appointmentId);
+        const newObjectId =  new mongoose.Types.ObjectId(appointmentId);
+        const appointmentData = await appointmentModel.findById(newObjectId);
         //verify appointment user
         if(appointmentData.userId !==  userId) {
             return res.json({success: false, message: 'Unauthorized action'})
         }
-        await appointmentModel.findByIdAndUpdate(appointmentId, {cancelled: true});
+        await appointmentModel.findByIdAndUpdate(newObjectId, {cancelled: true});
         //releasing doctors slot
         const {docId, slotDate, slotTime} = appointmentData;
         const doctorData = await doctorModel.findById(docId);
